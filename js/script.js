@@ -36,7 +36,7 @@ async function displayPopularMovies() {
     document.querySelector("#popular-movies").appendChild(div);
   });
 }
-
+// Popular Shows
 async function displayPopularShows() {
   const { results } = await fetchAPIData("tv/on_the_air");
   // const{results}-destructure the array
@@ -150,7 +150,7 @@ async function displayMovieDetails() {
   `;
   document.querySelector("#movie-details").appendChild(div);
 }
-
+// Display popular shows
 async function displayShowDetails() {
   // window.location.search nam daje sve posle znaka ? u adresi(url)
   // sa .split podelimo i dobijamo array sa dva clana
@@ -222,6 +222,53 @@ async function displayShowDetails() {
   `;
   document.querySelector("#show-details").appendChild(div);
 }
+// Display swiper slider
+
+async function displaySlider() {
+  const { results } = await fetchAPIData("movie/now_playing");
+  results.forEach((movie) => {
+    // console.log(movie);
+    const div = document.createElement("div");
+    div.classList.add("swiper-slide");
+    div.innerHTML = `
+            <a href="movie-details.html?id=${movie.id}">
+              <img src="https://image.tmdb.org/t/p/w500${
+                movie.poster_path
+              }" alt="${movie.title}" />
+            </a>
+            <h4 class="swiper-rating">
+              <i class="fas fa-star text-secondary"></i> ${movie.vote_average.toFixed(
+                1
+              )} / 10
+            </h4>
+    `;
+    document.querySelector(".swiper-wrapper").appendChild(div);
+    initSwiper();
+  });
+}
+function initSwiper() {
+  const swiper = new Swiper(".swiper", {
+    slidesPerView: 1,
+    spaceBetween: 30,
+    freeMode: true,
+    loop: true,
+    autoplay: {
+      delay: 4000,
+      disableOnInteraction: false,
+    },
+    breakpoints: {
+      500: {
+        slidesPerView: 2,
+      },
+      700: {
+        slidesPerView: 3,
+      },
+      1200: {
+        slidesPerView: 4,
+      },
+    },
+  });
+}
 
 // Fetch data form TMDB API
 // OVO je samo vezba.Za pravi projekat zahtevi(requests) i API_KEY
@@ -282,6 +329,7 @@ function init() {
   switch (global.currentPage) {
     case "/":
     case "/index.html":
+      displaySlider();
       displayPopularMovies();
       break;
     case "/shows.html":
