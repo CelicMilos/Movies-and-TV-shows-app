@@ -1,5 +1,17 @@
+//Stvari kojima zelimo da pristupimo iz glabal state-a u bilo kojoj funkciji
 const global = {
+  // Za uzimanje ostatka url adrese posle "?" i .com,.net,.org
   currentPage: window.location.pathname,
+  search: {
+    term: "",
+    type: "",
+    page: 1,
+    totalPages: 1,
+  },
+  api: {
+    apiKey: "4f03c25d2cb6c0b7b33fd91d937f9a24",
+    apiUrl: "http://api.themoviedb.org/3/",
+  },
 };
 // Display 20 most popular movies
 async function displayPopularMovies() {
@@ -222,6 +234,74 @@ async function displayShowDetails() {
   `;
   document.querySelector("#show-details").appendChild(div);
 }
+
+// Serch movies and tv shows function
+
+async function search() {
+  // za dobijenje ostatka url adrese posle ? i .com,.org...
+  const querystring = window.location.search;
+  // za dobijanje podataka iz url,dobiju se metodi
+  const urlParams = new URLSearchParams(querystring);
+  global.search.type = urlParams.get("type");
+  global.search.term = urlParams.get("search-term");
+  //validation-provera da li je nesto uneto u search polje
+  if (global.search.term !== "" && global.search.term !== null) {
+    const { results, total_pages, page } = await searchAPIdata();
+    // console.log(results);
+    if (results.length === 0) {
+      showAlert("No results found");
+      return;
+    }
+    displaySearchResults(results);
+    document.querySelector("#search-term").value = "";
+  } else {
+    showAlert("Please enter a search term", "alert-error");
+  }
+}
+// Display search results
+function displaySearchResults(results) {
+  results.forEach((result) => {
+    const div = document.createElement("div");
+    div.classList.add("card");
+    div.innerHTML = `
+     <a href="${global.search.type}-details.html?id=${result.id}">
+            ${
+              result.poster_path
+                ? `<img
+              src="https://image.tmdb.org/t/p/w500${result.poster_path}"
+              class="card-img-top"
+              alt="${
+                global.search.type === "movie" ? result.title : result.name
+              }"
+            />`
+                : `
+            <img
+              src="images/no-image.jpg"
+              class="card-img-top"
+              alt="${
+                global.search.type === "movie" ? result.title : result.name
+              }"
+            />
+            `
+            }
+          </a>
+          <div class="card-body">
+            <h5 class="card-title">${
+              global.search.type === "movie" ? result.title : result.name
+            }</h5>
+            <p class="card-text">
+              <small class="text-muted">Release: ${
+                global.search.type === "movie"
+                  ? result.release_date
+                  : result.first_air_date
+              }</small>
+            </p>
+          </div>
+    `;
+    document.querySelector("#search-results").appendChild(div);
+  });
+}
+
 // Display swiper slider
 
 async function displaySlider() {
@@ -274,11 +354,23 @@ function initSwiper() {
 // OVO je samo vezba.Za pravi projekat zahtevi(requests) i API_KEY
 // bi trebalo da se cuvaju na serveru.
 async function fetchAPIData(endpoint) {
-  const API_KEY = "4f03c25d2cb6c0b7b33fd91d937f9a24";
-  const API_URL = "http://api.themoviedb.org/3/";
+  const API_KEY = global.api.apiKey;
+  const API_URL = global.api.apiUrl;
   showSpinner();
   const response = await fetch(
     `${API_URL}${endpoint}?api_key=${API_KEY}&language=en-US`
+  );
+  const data = await response.json();
+  hideSpinner();
+  return data;
+}
+async function searchAPIdata() {
+  const API_KEY = global.api.apiKey;
+  const API_URL = global.api.apiUrl;
+  showSpinner();
+  const response = await fetch(
+    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&
+    language=en-US&query=${global.search.term}`
   );
   const data = await response.json();
   hideSpinner();
@@ -300,6 +392,14 @@ function highlightActiveLink() {
       link.classList.add("active");
     }
   });
+}
+// Show custom  alert
+function showAlert(message, className = "alert-error") {
+  const alertElement = document.createElement("div");
+  alertElement.classList.add("alert", className);
+  alertElement.appendChild(document.createTextNode(message));
+  document.querySelector("#alert").appendChild(alertElement);
+  setTimeout(() => alertElement.remove(), 3000);
 }
 function addCommasToNumber(number) {
   return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -345,6 +445,7 @@ function init() {
       console.log("TV details");
       break;
     case "/search.html":
+      search();
       console.log("Search Page");
       break;
   }
