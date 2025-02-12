@@ -7,6 +7,7 @@ const global = {
     type: "",
     page: 1,
     totalPages: 1,
+    totalResults: 0,
   },
   api: {
     apiKey: "4f03c25d2cb6c0b7b33fd91d937f9a24",
@@ -246,8 +247,13 @@ async function search() {
   global.search.term = urlParams.get("search-term");
   //validation-provera da li je nesto uneto u search polje
   if (global.search.term !== "" && global.search.term !== null) {
-    const { results, total_pages, page } = await searchAPIdata();
+    const { results, total_pages, page, total_results } = await searchAPIdata();
     // console.log(results);
+    global.search.page = page;
+    global.search.totalPages = total_pages;
+    global.search.totalResults = total_results;
+    // console.log(global.search.totalPages);
+
     if (results.length === 0) {
       showAlert("No results found");
       return;
@@ -260,6 +266,11 @@ async function search() {
 }
 // Display search results
 function displaySearchResults(results) {
+  // Clear previous results
+  document.querySelector("#search-results").innerHTML = "";
+  document.querySelector("#search-results-heading").innerHTML = "";
+  document.querySelector("#pagination").innerHTML = "";
+
   results.forEach((result) => {
     const div = document.createElement("div");
     div.classList.add("card");
@@ -298,7 +309,55 @@ function displaySearchResults(results) {
             </p>
           </div>
     `;
+    document.querySelector(
+      "#search-results-heading"
+    ).innerHTML = `<h2>${results.length} of ${global.search.totalResults} Results for ${global.search.term}</h2>`;
     document.querySelector("#search-results").appendChild(div);
+  });
+  displayPagination();
+}
+function displayPagination() {
+  const div = document.createElement("div");
+  div.classList.add("pagination");
+  div.innerHTML = `
+          <button class="btn btn-primary" id="prev">Prev</button>
+          <button class="btn btn-primary" id="next">Next</button>
+          <div class="page-counter">Page ${global.search.page} of ${global.search.totalPages}</div>
+  `;
+  document.querySelector("#pagination").appendChild(div);
+
+  // Sakrij 'prev' i'next dugmica na prvoj stranici
+  const prevButton = document.querySelector("#prev");
+  const nextButton = document.querySelector("#next");
+
+  if (global.search.page === 1 && prevButton) {
+    prevButton.style.display = "none";
+  } else if (prevButton) {
+    prevButton.style.display = "inline-block"; // ili "block" u zavisnosti od dizajna
+  }
+
+  if (global.search.page === global.search.totalPages && nextButton) {
+    nextButton.style.display = "none";
+  } else if (nextButton) {
+    nextButton.style.display = "inline-block";
+  }
+
+  // Next page
+  document.querySelector("#next").addEventListener("click", async () => {
+    // API request for next page
+
+    global.search.page++;
+    const { results, total_pages } = await searchAPIdata();
+    displaySearchResults(results);
+  });
+
+  // Previous page
+  document.querySelector("#prev").addEventListener("click", async () => {
+    // API request for next page
+
+    global.search.page--;
+    const { results, total_pages } = await searchAPIdata();
+    displaySearchResults(results);
   });
 }
 
@@ -370,7 +429,7 @@ async function searchAPIdata() {
   showSpinner();
   const response = await fetch(
     `${API_URL}search/${global.search.type}?api_key=${API_KEY}&
-    language=en-US&query=${global.search.term}`
+    language=en-US&query=${global.search.term}&page=${global.search.page}`
   );
   const data = await response.json();
   hideSpinner();
